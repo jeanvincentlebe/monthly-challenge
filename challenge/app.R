@@ -32,8 +32,10 @@ server <- function(input, output) {
         fluidPage(
             selectInput("name", "Please select your name", choices = colnames(db[-1]), multiple = F, selected = ""),
             actionButton("validate", "Challenge Done!"),
-            tags$br(), tags$br(), tags$br(),
+            dateInput("from", "Plot start date", value = today() %>% floor_date(unit = "month")),
+            dateInput("to", "Plot end date",  value = today() %>% ceiling_date(unit = "month")),
             plotOutput("indivPlot"),
+            tags$br(),
             plotOutput("challengePlot")
         )
     })
@@ -52,7 +54,7 @@ server <- function(input, output) {
         db$Total <- apply(db[, -1], 1, sum) 
         ggplot(db) + geom_line(aes(x = Date, y = Total), colour = "blue") +
             scale_y_continuous(limits = c(0, 10), breaks = c(1:10)) +
-            scale_x_date(limits = c("2020-10-01", "2020-10-31") %>% ymd)
+            scale_x_date(limits = c(input$from, input$to))
     })
     
     output$indivPlot <- renderPlot({
@@ -65,7 +67,7 @@ server <- function(input, output) {
         db2$Done[db2$Done == "1"] <- "V" # "\u2714"
         db2$Done[db2$Done == "0"] <- "X"
         ggplot(db2) + geom_label(aes(x = Date, y = Name, label = Done, colour = Done)) +
-            scale_x_date(limits = c("2020-10-01", "2020-10-31") %>% ymd) +
+            scale_x_date(limits = c(input$from, input$to)) +
             scale_color_manual(values = c("green", "red"), guide = F)
     })
         
