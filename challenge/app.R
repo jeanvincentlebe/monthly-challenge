@@ -12,6 +12,9 @@ ui <- dashboardPage(
             tabPanel(title = "Challenge entry",
                      uiOutput("ChallengeTab")
                      ),
+            tabPanel(title = "Other days",
+                     uiOutput("OtherDays")
+                     ),
             tabPanel(title = "Admin",
                      textInput("newName", "Enter new participant name"),
                      actionButton("newEnter", "Validate"),
@@ -22,38 +25,74 @@ ui <- dashboardPage(
 )
 
 server <- function(input, output) {
+# Tab Challenge Entry
     output$ChallengeTab <- renderUI({
         input$newEnter
         load(file = "database.RData")
         fluidPage(
-            selectInput("name", "Please select your name", choices = colnames(db[-1]), multiple = F),
+            selectInput("name", "Please select your name", choices = colnames(db[-1]), multiple = F, selected = ""),
             actionButton("validate", "Challenge Done!"),
             tags$br(), tags$br(), tags$br(),
+            plotOutput("indivPlot"),
             plotOutput("challengePlot")
         )
     })
-    
+
     observeEvent(input$validate, {
         load(file = "database.RData")
         db[which(db$Date == today()), input$name] <- 1
         save(db, file = "database.RData")
     })
     
-    observeEvent(input$newEnter, {
-        load(file = "database.RData")
-        db <- db %>% mutate(New = 0)
-        colnames(db)[which(colnames(db) == "New")] <- input$newName
-        save(db, file = "database.RData")
-    })
-    
     output$challengePlot <- renderPlot({
         input$validate
+        input$iValidate
         input$reset
         load(file = "database.RData")
         db$Total <- apply(db[, -1], 1, sum) 
         ggplot(db) + geom_line(aes(x = Date, y = Total), colour = "blue") +
             scale_y_continuous(limits = c(0, 10), breaks = c(1:10)) +
             scale_x_date(limits = c("2020-10-01", "2020-10-31") %>% ymd)
+    })
+    
+    output$indivPlot <- renderPlot({
+        input$validate
+        input$iValidate
+        input$reset
+        load(file = "database.RData")
+        db2 <- db %>% pivot_longer(2:ncol(db), names_to = "Name", values_to = "Done")
+        db2$Done <- db2$Done %>% as.character
+        db2$Done[db2$Done == "1"] <- "V" # "\u2714"
+        db2$Done[db2$Done == "0"] <- "X"
+        ggplot(db2) + geom_label(aes(x = Date, y = Name, label = Done, colour = Done)) +
+            scale_x_date(limits = c("2020-10-01", "2020-10-31") %>% ymd) +
+            scale_color_manual(values = c("green", "red"), guide = F)
+    })
+        
+# Tab Other Days
+    output$OtherDays <- renderUI({
+        load(file = "database.RData")
+        fluidPage(
+            dateInput("iDate", "Please select date to validate"),
+            selectInput("iName", "Please select your name", choices = colnames(db[-1]), multiple = F, selected = ""),
+            actionButton("iValidate", "Challenge Done!")
+        )
+    })
+    
+    observeEvent(input$iValidate, {
+        load(file = "database.RData")
+        db[which(db$Date == input$iDate), input$iName] <- 1
+        save(db, file = "database.RData")
+    })
+    
+# Admin Tab
+    observeEvent(input$newEnter, {
+        load(file = "database.RData")
+        if(!input$newName %in% colnames(db)){
+            db <- db %>% mutate(New = 0)
+            colnames(db)[which(colnames(db) == "New")] <- input$newName
+        }
+        save(db, file = "database.RData")
     })
     
     observeEvent(input$reset, {
