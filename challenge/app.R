@@ -6,6 +6,7 @@ library(rdrop2)
 
 ## Drop Box path
 filePath <- "/database.rdata"
+token <- readRDS("droptoken.rds")
 
 ui <- dashboardPage(
     dashboardHeader(title = "Anne-So's Monthly Challenge", titleWidth = "100%"),
@@ -31,7 +32,7 @@ server <- function(input, output) {
     # Tab Challenge Entry
     output$ChallengeTab <- renderUI({
         input$newEnter
-        drop_download(filePath, overwrite = T)
+        drop_download(filePath, overwrite = T, dtoken = token)
         load(file = "database.rdata")
         fluidPage(
             selectInput("name", "Please select your name", choices = colnames(db[-1]), multiple = F, selected = ""),
@@ -45,18 +46,18 @@ server <- function(input, output) {
     })
     
     observeEvent(input$validate, {
-        drop_download(filePath, overwrite = T)
+        drop_download(filePath, overwrite = T, dtoken = token)
         load(file = "database.rdata")
         db[which(db$Date == today()), input$name] <- 1
-        save(db, file = "database.RData")
-        drop_upload("database.rdata")
+        save(db, file = "database.rdata")
+        drop_upload("database.rdata", dtoken = token)
     })
     
     output$challengePlot <- renderPlot({
         input$validate
         input$iValidate
         input$reset
-        drop_download(filePath, overwrite = T)
+        drop_download(filePath, overwrite = T, dtoken = token)
         load(file = "database.rdata")
         db$Total <- apply(db[, -1], 1, sum) 
         ggplot(db) + geom_line(aes(x = Date, y = Total), colour = "blue") +
@@ -68,7 +69,7 @@ server <- function(input, output) {
         input$validate
         input$iValidate
         input$reset
-        drop_download(filePath, overwrite = T)
+        drop_download(filePath, overwrite = T, dtoken = token)
         load(file = "database.rdata")
         db2 <- db %>% pivot_longer(2:ncol(db), names_to = "Name", values_to = "Done")
         db2$Done <- db2$Done %>% as.character
@@ -81,7 +82,7 @@ server <- function(input, output) {
     
     # Tab Other Days
     output$OtherDays <- renderUI({
-        drop_download(filePath, overwrite = T)
+        drop_download(filePath, overwrite = T, dtoken = token)
         load(file = "database.rdata")
         fluidPage(
             dateInput("iDate", "Please select date to validate"),
@@ -91,23 +92,23 @@ server <- function(input, output) {
     })
     
     observeEvent(input$iValidate, {
-        drop_download(filePath, overwrite = T)
+        drop_download(filePath, overwrite = T, dtoken = token)
         load(file = "database.rdata")
         db[which(db$Date == input$iDate), input$iName] <- 1
-        save(db, file = "database.RData")
-        drop_upload("database.rdata")
+        save(db, file = "database.rdata")
+        drop_upload("database.rdata", dtoken = token)
     })
     
     # Admin Tab
     observeEvent(input$newEnter, {
-        drop_download(filePath, overwrite = T)
+        drop_download(filePath, overwrite = T, dtoken = token)
         load(file = "database.rdata")
         if(!input$newName %in% colnames(db)){
             db <- db %>% mutate(New = 0)
             colnames(db)[which(colnames(db) == "New")] <- input$newName
         }
-        save(db, file = "database.RData")
-        drop_upload("database.rdata")
+        save(db, file = "database.rdata")
+        drop_upload("database.rdata", dtoken = token)
     })
     
     observeEvent(input$reset, {
@@ -115,8 +116,8 @@ server <- function(input, output) {
                      `Anne-So` = 0,
                      Felipe = 0,
                      `Bérénice` = 0)
-        save(db, file = "database.RData")
-        drop_upload("database.rdata")
+        save(db, file = "database.rdata")
+        drop_upload("database.rdata", dtoken = token)
     })
 }
 
