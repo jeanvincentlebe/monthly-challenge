@@ -1,76 +1,82 @@
 library(shiny)
 library(shinydashboard)
-library(tidyverse)
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(magrittr)
+
 library(lubridate)
 library(rdrop2)
 
 ## Drop Box path
 filePath <- "/database.rdata"
 token <- readRDS("droptoken.rds")
+drop_download(filePath, overwrite = T, dtoken = token)
+load(file = "database.rdata")
 
-ui <- dashboardPage(
-    dashboardHeader(title = "Anne-So's Monthly Challenge", titleWidth = "100%"),
-    dashboardSidebar(disable = T),
-    dashboardBody(
-        tabsetPanel(
-            tabPanel(title = "Challenge entry",
-                     uiOutput("ChallengeTab")
-            ),
-            tabPanel(title = "Other days",
-                     uiOutput("OtherDays")
-            ),
-            tabPanel(title = "Admin",
-                     textInput("newName", "Enter new participant name"),
-                     actionButton("newEnter", "Validate"),
-                     actionButton("reset", "Reset database")
-            )
-        )
-    )
+ui <- dashboardPage(skin = "purple", 
+                    dashboardHeader(title = "Ann'So Monthly Challenge", titleWidth = "100%"),
+                    dashboardSidebar(disable = T),
+                    dashboardBody(
+                        tags$head(tags$style(type = "text/css", "a{color: #55509B;}")), #800080
+                        tags$head(tags$style(".content-wrapper, .right-side {background-color: #D6DDFF;}")),
+                        tabsetPanel(
+                            tabPanel(title = "Challenge entry",
+                                     # tags$br(), tags$br(),
+                                     tags$h4("10 MINUTE KILLER AB WORKOUT", style = "color: #55509B"),
+                                     tags$a(
+                                         tags$img(src = "pic.jpg", width="70%", height="70%"),
+                                         href = "https://youtu.be/O-NKhBarAcc"
+                                     ),
+                                     tags$br(), tags$br(),
+                                     uiOutput("ChallengeTab")
+                            ),
+                            tabPanel(title = "Other days",
+                                     uiOutput("OtherDays")
+                            ),
+                            tabPanel(title = "Admin",
+                                     textInput("newName", "Enter new participant name"),
+                                     actionButton("newEnter", "Validate"),
+                                     actionButton("reset", "Reset database")
+                            )
+                        )
+                    )
 )
 
 server <- function(input, output) {
     # Tab Challenge Entry
     output$ChallengeTab <- renderUI({
-        input$newEnter
-        drop_download(filePath, overwrite = T, dtoken = token)
-        load(file = "database.rdata")
         fluidPage(
             selectInput("name", "Please select your name", choices = colnames(db[-1]), multiple = F, selected = ""),
-            actionButton("validate", "Challenge Done!"),
-            dateInput("from", "Plot start date", value = today() %>% floor_date(unit = "month")),
-            dateInput("to", "Plot end date",  value = today() %>% ceiling_date(unit = "month")),
+            actionButton("Validate", "Challenge Done!"),
+            tags$br(), tags$br(), tags$br(),
             plotOutput("indivPlot"),
             tags$br(),
-            plotOutput("challengePlot")
+            plotOutput("challengePlot"),
+            tags$br(),
+            flowLayout(
+                dateInput("from", "Plots start date", value = today() %>% floor_date(unit = "month"), weekstart = 1),
+                dateInput("to", "Plots end date",  value = today() %>% ceiling_date(unit = "month"), weekstart = 1)
+            )
         )
     })
     
-    observeEvent(input$validate, {
+    observeEvent(input$Validate, {
         drop_download(filePath, overwrite = T, dtoken = token)
         load(file = "database.rdata")
         db[which(db$Date == today()), input$name] <- 1
         save(db, file = "database.rdata")
         drop_upload("database.rdata", dtoken = token)
-    })
-    
-    output$challengePlot <- renderPlot({
-        input$validate
-        input$iValidate
-        input$reset
-        drop_download(filePath, overwrite = T, dtoken = token)
-        load(file = "database.rdata")
-        db$Total <- apply(db[, -1], 1, sum) 
-        ggplot(db) + geom_line(aes(x = Date, y = Total), colour = "blue") +
-            scale_y_continuous(limits = c(0, 10), breaks = c(1:10)) +
-            scale_x_date(limits = c(input$from, input$to))
+        db <<- db
     })
     
     output$indivPlot <- renderPlot({
-        input$validate
+        input$Validate
         input$iValidate
+        input$newEnter
         input$reset
-        drop_download(filePath, overwrite = T, dtoken = token)
-        load(file = "database.rdata")
+        
         db2 <- db %>% pivot_longer(2:ncol(db), names_to = "Name", values_to = "Done")
         db2$Done <- db2$Done %>% as.character
         db2$Done[db2$Done == "1"] <- "V"
@@ -80,13 +86,24 @@ server <- function(input, output) {
             scale_color_manual(values = c("green", "red"), guide = F)
     })
     
+    output$challengePlot <- renderPlot({
+        input$Validate
+        input$iValidate
+        input$newEnter
+        input$reset
+        
+        db$Total <- apply(db[, -1], 1, sum) 
+        ggplot(db) + geom_line(aes(x = Date, y = Total), colour = "blue") +
+            scale_y_continuous(limits = c(0, 17), breaks = c(1:17)) +
+            scale_x_date(limits = c(input$from, input$to)) +
+            theme(panel.grid.minor = element_blank())
+    })
+    
     # Tab Other Days
     output$OtherDays <- renderUI({
-        drop_download(filePath, overwrite = T, dtoken = token)
-        load(file = "database.rdata")
         fluidPage(
-            dateInput("iDate", "Please select date to validate"),
             selectInput("iName", "Please select your name", choices = colnames(db[-1]), multiple = F, selected = ""),
+            dateInput("iDate", "Please select date to validate", weekstart = 1),
             actionButton("iValidate", "Challenge Done!")
         )
     })
@@ -97,6 +114,7 @@ server <- function(input, output) {
         db[which(db$Date == input$iDate), input$iName] <- 1
         save(db, file = "database.rdata")
         drop_upload("database.rdata", dtoken = token)
+        db <<- db
     })
     
     # Admin Tab
@@ -109,15 +127,32 @@ server <- function(input, output) {
         }
         save(db, file = "database.rdata")
         drop_upload("database.rdata", dtoken = token)
+        db <<- db
     })
     
     observeEvent(input$reset, {
         db <- tibble(Date = c("2020-10-24" %>% ymd, "2020-10-24" %>% ymd + seq(0:67)), 
-                     `Anne-So` = 0,
+                     `Ann'So` = 0,
+                     `Bérénice` = 0,
+                     `Bruno` = 0,
+                     `Celine` = 0,
                      Felipe = 0,
-                     `Bérénice` = 0)
+                     Franciele = 0,
+                     Geraldine = 0,
+                     Greg = 0,
+                     JLO = 0,
+                     `Karen Mc` = 0,
+                     Maxie = 0,
+                     Melanie = 0,
+                     Patrick = 0,
+                     Rose = 0,
+                     Sarah = 0,
+                     `Sarah Salvi` = 0,
+                     Virg = 0
+        )
         save(db, file = "database.rdata")
         drop_upload("database.rdata", dtoken = token)
+        db <<- db
     })
 }
 

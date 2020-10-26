@@ -1,5 +1,6 @@
 challenge/database.RData
 challenge/droptoken.rds
+.DS_Store
 
 # History files
 .Rhistory
