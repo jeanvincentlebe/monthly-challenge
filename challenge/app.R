@@ -36,9 +36,11 @@ ui <- dashboardPage(skin = "purple",
                                      uiOutput("OtherDays")
                             ),
                             tabPanel(title = "Admin",
+                                     helpText(paste0("Server Time: ", now())),
                                      textInput("newName", "Enter new participant name"),
                                      actionButton("newEnter", "Validate"),
-                                     actionButton("reset", "Reset database")
+                                     actionButton("reset", "Reset database"),
+                                     downloadButton("downloadData", "Download csv table")
                             )
                         )
                     )
@@ -48,7 +50,7 @@ server <- function(input, output) {
     # Tab Challenge Entry
     output$ChallengeTab <- renderUI({
         fluidPage(
-            selectInput("name", "Please select your name", choices = colnames(db[-1]), multiple = F, selected = ""),
+            selectInput("name", "Please select your name", choices = colnames(db[-1]) %>% sort, multiple = F, selected = ""),
             actionButton("Validate", "Challenge Done!"),
             tags$br(), tags$br(), tags$br(),
             plotOutput("indivPlot"),
@@ -76,14 +78,17 @@ server <- function(input, output) {
         input$iValidate
         input$newEnter
         input$reset
-        
+
         db2 <- db %>% pivot_longer(2:ncol(db), names_to = "Name", values_to = "Done")
+        db2$Name <- db2$Name %>% factor(levels = db2$Name %>% unique %>% sort %>% rev)
         db2$Done <- db2$Done %>% as.character
         db2$Done[db2$Done == "1"] <- "V"
         db2$Done[db2$Done == "0"] <- "X"
         ggplot(db2) + geom_label(aes(x = Date, y = Name, label = Done, colour = Done)) +
             scale_x_date(limits = c(input$from, input$to)) +
-            scale_color_manual(values = c("green", "red"), guide = F)
+            scale_color_manual(values = c("green", "red"), guide = F) +
+            geom_vline(xintercept = today(), colour = "#55509B") +
+            labs(y = NULL)
     })
     
     output$challengePlot <- renderPlot({
@@ -93,7 +98,7 @@ server <- function(input, output) {
         input$reset
         
         db$Total <- apply(db[, -1], 1, sum) 
-        ggplot(db) + geom_line(aes(x = Date, y = Total), colour = "blue") +
+        ggplot(db) + geom_line(aes(x = Date, y = Total), colour = "#55509B") +
             scale_y_continuous(limits = c(0, 17), breaks = c(1:17)) +
             scale_x_date(limits = c(input$from, input$to)) +
             theme(panel.grid.minor = element_blank())
@@ -130,20 +135,29 @@ server <- function(input, output) {
         db <<- db
     })
     
+    output$downloadData <- downloadHandler(
+        filename = "Challenge.csv",
+        content = function(file) {
+            drop_download(filePath, overwrite = T, dtoken = token)
+            load(file = "database.rdata")
+            write.csv2(db, file, row.names = FALSE)
+        }
+    )
+    
     observeEvent(input$reset, {
         db <- tibble(Date = c("2020-10-24" %>% ymd, "2020-10-24" %>% ymd + seq(0:67)), 
                      `Ann'So` = 0,
                      `Bérénice` = 0,
                      `Bruno` = 0,
-                     `Celine` = 0,
+                     `Céline` = 0,
                      Felipe = 0,
                      Franciele = 0,
-                     Geraldine = 0,
+                     `Géraldine` = 0,
                      Greg = 0,
                      JLO = 0,
                      `Karen Mc` = 0,
                      Maxie = 0,
-                     Melanie = 0,
+                     `Mélanie` = 0,
                      Patrick = 0,
                      Rose = 0,
                      Sarah = 0,
