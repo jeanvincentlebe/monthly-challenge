@@ -16,7 +16,7 @@ drop_download(filePath, overwrite = T, dtoken = token)
 load(file = "database.rdata")
 
 ui <- dashboardPage(skin = "purple", 
-                    dashboardHeader(title = "Ann'So Monthly Challenge", titleWidth = "100%"),
+                    dashboardHeader(title = "Monthly Challenge", titleWidth = "100%"),
                     dashboardSidebar(disable = T),
                     dashboardBody(
                         tags$head(tags$style(type = "text/css", "a{color: #55509B;}")), #800080
@@ -39,7 +39,7 @@ ui <- dashboardPage(skin = "purple",
                                      helpText(paste0("Server Time: ", now())),
                                      textInput("newName", "Enter new participant name"),
                                      actionButton("newEnter", "Validate"),
-                                     actionButton("reset", "Reset database"),
+                                     # actionButton("reset", "Reset database"),
                                      downloadButton("downloadData", "Download csv table")
                             )
                         )
@@ -59,7 +59,7 @@ server <- function(input, output) {
             tags$br(),
             flowLayout(
                 dateInput("from", "Plots start date", value = today() %>% floor_date(unit = "month"), weekstart = 1),
-                dateInput("to", "Plots end date",  value = today() %>% ceiling_date(unit = "month"), weekstart = 1)
+                dateInput("to", "Plots end date",  value = (today() %>% ceiling_date(unit = "month") - 1), weekstart = 1)
             )
         )
     })
@@ -79,11 +79,13 @@ server <- function(input, output) {
         input$newEnter
         input$reset
 
-        db2 <- db %>% pivot_longer(2:ncol(db), names_to = "Name", values_to = "Done")
+        db2 <- db[db$Date >= input$from & db$Date <= input$to,] %>% 
+            pivot_longer(2:ncol(db), names_to = "Name", values_to = "Done")
         db2$Name <- db2$Name %>% factor(levels = db2$Name %>% unique %>% sort %>% rev)
         db2$Done <- db2$Done %>% as.character
         db2$Done[db2$Done == "1"] <- "V"
-        db2$Done[db2$Done == "0"] <- "X"
+        # db2$Done[db2$Done == "0"] <- NA
+        db2 <- db2[db2$Done == "V",]
         ggplot(db2) + geom_label(aes(x = Date, y = Name, label = Done, colour = Done)) +
             scale_x_date(limits = c(input$from, input$to)) +
             scale_color_manual(values = c("green", "red"), guide = F) +
@@ -96,10 +98,10 @@ server <- function(input, output) {
         input$iValidate
         input$newEnter
         input$reset
-        
-        db$Total <- apply(db[, -1], 1, sum) 
-        ggplot(db) + geom_line(aes(x = Date, y = Total), colour = "#55509B") +
-            scale_y_continuous(limits = c(0, 17), breaks = c(1:17)) +
+        db2 <- db[db$Date >= input$from & db$Date <= input$to,]
+        db2$Total <- apply(db2[, -1], 1, sum) 
+        ggplot(db2) + geom_line(aes(x = Date, y = Total), colour = "#55509B") +
+            scale_y_continuous(limits = c(0, 20), breaks = c(1:20)) +
             scale_x_date(limits = c(input$from, input$to)) +
             theme(panel.grid.minor = element_blank())
     })
@@ -107,7 +109,7 @@ server <- function(input, output) {
     # Tab Other Days
     output$OtherDays <- renderUI({
         fluidPage(
-            selectInput("iName", "Please select your name", choices = colnames(db[-1]), multiple = F, selected = ""),
+            selectInput("iName", "Please select your name", choices = colnames(db[-1]) %>% sort, multiple = F, selected = ""),
             dateInput("iDate", "Please select date to validate", weekstart = 1),
             actionButton("iValidate", "Challenge Done!")
         )
