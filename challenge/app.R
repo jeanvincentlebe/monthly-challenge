@@ -99,9 +99,11 @@ server <- function(input, output) {
         input$newEnter
         input$reset
         db2 <- db[db$Date >= input$from & db$Date <= input$to,]
-        db2$Total <- apply(db2[, -1], 1, sum) 
+        db2$Total <- apply(db2[, -1], 1, sum)
+        MaxLim <- max(db2$Total)
+        db2$Total[db2$Total == 0] <- NA
         ggplot(db2) + geom_line(aes(x = Date, y = Total), colour = "#55509B") +
-            scale_y_continuous(limits = c(0, 20), breaks = c(1:20)) +
+            scale_y_continuous(limits = c(1, MaxLim), breaks = c(1:MaxLim)) +
             scale_x_date(limits = c(input$from, input$to)) +
             theme(panel.grid.minor = element_blank())
     })
