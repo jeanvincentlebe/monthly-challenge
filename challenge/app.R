@@ -55,7 +55,7 @@ server <- function(input, output) {
             tags$br(), tags$br(), tags$br(),
             plotOutput("indivPlot"),
             tags$br(),
-            plotOutput("challengePlot"),
+            plotOutput("challengePlot", height = "200px"),
             tags$br(),
             flowLayout(
                 dateInput("from", "Plots start date", value = today() %>% floor_date(unit = "month"), weekstart = 1),
@@ -102,7 +102,7 @@ server <- function(input, output) {
         db2$Total <- apply(db2[, -1], 1, sum)
         MaxLim <- max(db2$Total)
         db2$Total[db2$Total == 0] <- NA
-        ggplot(db2) + geom_line(aes(x = Date, y = Total), colour = "#55509B") +
+        ggplot(db2) + geom_point(aes(x = Date, y = Total), colour = "#55509B", shape = 8) +
             scale_y_continuous(limits = c(1, MaxLim), breaks = c(1:MaxLim)) +
             scale_x_date(limits = c(input$from, input$to)) +
             theme(panel.grid.minor = element_blank())
