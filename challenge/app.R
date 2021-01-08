@@ -10,18 +10,22 @@ library(lubridate)
 library(rdrop2)
 
 ## Drop Box path
+# db and database.rdata are 2020 database
+# db21 and database21.rdata are 2021 database
 filePath <- "/database.rdata"
+filePath21 <- "/database21.rdata"
+
 token <- readRDS("droptoken.rds")
+drop_download(filePath21, overwrite = T, dtoken = token)
 drop_download(filePath, overwrite = T, dtoken = token)
+
+load(file = "database21.rdata")
 load(file = "database.rdata")
 
 ui <- dashboardPage(# skin = "red", # "purple", 
                     dashboardHeader(title = "Monthly Challenge", titleWidth = "100%"),
                     dashboardSidebar(disable = T),
                     dashboardBody(
-                        # tags$head(tags$style(type = "text/css", "a{color: #941E1E;}")), #800080
-                        # tags$head(tags$style(".content-wrapper, .right-side {background-color: #C52B2A;}")), #C52B2A ; D9371A
-
                         tabsetPanel(
                             tabPanel(title = "Current Month",
                                      uiOutput("ChallengeTab")
@@ -45,6 +49,9 @@ ui <- dashboardPage(# skin = "red", # "purple",
                                      uiOutput("NovTab")
                             ),
                             tabPanel(title = "Dec 20",
+                                     # tags$head(tags$style(type = "text/css", "a{color: #941E1E;}")), #800080
+                                     # tags$head(tags$style(".content-wrapper, .right-side {background-color: #C52B2A;}")), #C52B2A ; D9371A
+                                     
                                      # tags$br(), tags$br(),
                                      tags$h4("Advent Calendar challenge!", style = "color: #941E1E"),  #FFFAFA
                                      tags$a(
@@ -87,12 +94,12 @@ server <- function(input, output) {
     })
     
     observeEvent(input$Validate, {
-        drop_download(filePath, overwrite = T, dtoken = token)
-        load(file = "database.rdata")
-        db[which(db$Date == today()), input$name] <- 1
-        save(db, file = "database.rdata")
-        drop_upload("database.rdata", dtoken = token)
-        db <<- db
+        drop_download(filePath21, overwrite = T, dtoken = token)
+        load(file = "database21.rdata")
+        db21[which(db21$Date == today()), input$name] <- 1
+        save(db21, file = "database21.rdata")
+        drop_upload("database21.rdata", dtoken = token)
+        db21 <<- db21
     })
     
     output$indivPlot <- renderPlot({
@@ -103,7 +110,7 @@ server <- function(input, output) {
         
         from <- "20210101" %>% ymd()
         to <- "20210131" %>% ymd()
-        db2 <- db[db$Date >= from & db$Date <= to,] %>% 
+        db2 <- db21[db21$Date >= from & db21$Date <= to,] %>% 
             pivot_longer(2:ncol(db), names_to = "Name", values_to = "Done")
         db2$Name <- db2$Name %>% factor(levels = db2$Name %>% unique %>% sort %>% rev)
         db2$Done <- db2$Done %>% as.character
@@ -124,7 +131,7 @@ server <- function(input, output) {
         
         from <- "20210101" %>% ymd()
         to <- "20210131" %>% ymd()
-        db2 <- db[db$Date >= from & db$Date <= to,]
+        db2 <- db21[db21$Date >= from & db21$Date <= to,]
         db2$Total <- apply(db2[, -1], 1, sum)
         MaxLim <- ifelse(length(db2$Total) > 0, max(db2$Total), 0)
         db2$Total[db2$Total == 0] <- NA
@@ -144,60 +151,35 @@ server <- function(input, output) {
     })
     
     observeEvent(input$iValidate, {
-        drop_download(filePath, overwrite = T, dtoken = token)
-        load(file = "database.rdata")
-        db[which(db$Date == input$iDate), input$iName] <- 1
-        save(db, file = "database.rdata")
-        drop_upload("database.rdata", dtoken = token)
-        db <<- db
+        drop_download(filePath21, overwrite = T, dtoken = token)
+        load(file = "database21.rdata")
+        db21[which(db21$Date == input$iDate), input$iName] <- 1
+        save(db21, file = "database21.rdata")
+        drop_upload("database21.rdata", dtoken = token)
+        db21 <<- db21
     })
     
     # Admin Tab ------------------------------------------------------------------------------------
     observeEvent(input$newEnter, {
-        drop_download(filePath, overwrite = T, dtoken = token)
-        load(file = "database.rdata")
-        if(!input$newName %in% colnames(db)){
-            db <- db %>% mutate(New = 0)
-            colnames(db)[which(colnames(db) == "New")] <- input$newName
+        drop_download(filePath21, overwrite = T, dtoken = token)
+        load(file = "database21.rdata")
+        if(!input$newName %in% colnames(db21)){
+            db21 <- db21 %>% mutate(New = 0)
+            colnames(db21)[which(colnames(db21) == "New")] <- input$newName
         }
-        save(db, file = "database.rdata")
-        drop_upload("database.rdata", dtoken = token)
-        db <<- db
+        save(db21, file = "database21.rdata")
+        drop_upload("database21.rdata", dtoken = token)
+        db21 <<- db21
     })
     
     output$downloadData <- downloadHandler(
         filename = "Challenge.csv",
         content = function(file) {
-            drop_download(filePath, overwrite = T, dtoken = token)
-            load(file = "database.rdata")
-            write.csv2(db, file, row.names = FALSE)
+            drop_download(filePath21, overwrite = T, dtoken = token)
+            load(file = "database21.rdata")
+            write.csv2(bind_rows(db, db21), file, row.names = FALSE)
         }
     )
-    
-    observeEvent(input$reset, {
-        db <- tibble(Date = c("2020-10-24" %>% ymd, "2020-10-24" %>% ymd + seq(0:67)), 
-                     `Ann'So` = 0,
-                     `Bérénice` = 0,
-                     `Bruno` = 0,
-                     `Céline` = 0,
-                     Felipe = 0,
-                     Franciele = 0,
-                     `Géraldine` = 0,
-                     Greg = 0,
-                     JLO = 0,
-                     `Karen Mc` = 0,
-                     Maxie = 0,
-                     `Mélanie` = 0,
-                     Patrick = 0,
-                     Rose = 0,
-                     Sarah = 0,
-                     `Sarah Salvi` = 0,
-                     Virg = 0
-        )
-        save(db, file = "database.rdata")
-        drop_upload("database.rdata", dtoken = token)
-        db <<- db
-    })
     
     # November 2020 tab ----------------------------------------------------------------------------
     output$NovTab <- renderUI({
