@@ -35,6 +35,15 @@ ui <- dashboardPage(# skin = "red", # "purple",
                                      uiOutput("OtherDays")
                             ),
                             
+                            
+                            tabPanel(title = "Admin",
+                                     helpText(paste0("Server Time: ", now())),
+                                     textInput("newName", "Enter new participant name"),
+                                     actionButton("newEnter", "Validate"),
+                                     # actionButton("reset", "Reset database"),
+                                     downloadButton("downloadData", "Download csv table")
+                            ),
+                            
                             tabPanel(title = "Nov 20",
                                      # tags$head(tags$style(type = "text/css", "a{color: #55509B;}")), #800080
                                      # tags$head(tags$style(".content-wrapper, .right-side {background-color: #D6DDFF;}")),
@@ -60,14 +69,6 @@ ui <- dashboardPage(# skin = "red", # "purple",
                                      ),
                                      tags$br(), tags$br(),
                                      uiOutput("DecTab")
-                            ),
-                            
-                            tabPanel(title = "Admin",
-                                     helpText(paste0("Server Time: ", now())),
-                                     textInput("newName", "Enter new participant name"),
-                                     actionButton("newEnter", "Validate"),
-                                     # actionButton("reset", "Reset database"),
-                                     downloadButton("downloadData", "Download csv table")
                             )
                         )
                     )
@@ -79,17 +80,13 @@ server <- function(input, output) {
     ## ------ Active tab -------------------------------------------------------------------------------
     output$ChallengeTab <- renderUI({
         fluidPage(
-            selectInput("name", "Please select your name", choices = colnames(db[-1]) %>% sort, multiple = F, selected = ""),
+            selectInput("name", "Please select your name", choices = colnames(db21[-1]) %>% sort, multiple = F, selected = ""),
             actionButton("Validate", "Challenge Done!"),
             tags$br(), tags$br(), tags$br(),
             plotOutput("indivPlot"),
             tags$br(),
             plotOutput("challengePlot", height = "200px"),
-            tags$br(),
-            # flowLayout(
-            #     dateInput("from", "Plots start date", value = "20201101" %>% ymd()),
-            #     dateInput("to", "Plots end date",  value = "20201130" %>% ymd())
-            # )
+            tags$br()
         )
     })
     
@@ -108,10 +105,10 @@ server <- function(input, output) {
         input$newEnter
         input$reset
         
-        from <- "20210101" %>% ymd()
-        to <- "20210131" %>% ymd()
+        from <- floor_date(today(), "month")
+        to <- ceiling_date(today(), "month") - 1
         db2 <- db21[db21$Date >= from & db21$Date <= to,] %>% 
-            pivot_longer(2:ncol(db), names_to = "Name", values_to = "Done")
+            pivot_longer(2:ncol(db21), names_to = "Name", values_to = "Done")
         db2$Name <- db2$Name %>% factor(levels = db2$Name %>% unique %>% sort %>% rev)
         db2$Done <- db2$Done %>% as.character
         db2$Done[db2$Done == "1"] <- "V"
@@ -129,8 +126,8 @@ server <- function(input, output) {
         input$newEnter
         input$reset
         
-        from <- "20210101" %>% ymd()
-        to <- "20210131" %>% ymd()
+        from <- floor_date(today(), "month")
+        to <- ceiling_date(today(), "month") - 1
         db2 <- db21[db21$Date >= from & db21$Date <= to,]
         db2$Total <- apply(db2[, -1], 1, sum)
         MaxLim <- ifelse(length(db2$Total) > 0, max(db2$Total), 0)
@@ -144,7 +141,7 @@ server <- function(input, output) {
     # Tab Other Days --------------------------------------------------------------------------------
     output$OtherDays <- renderUI({
         fluidPage(
-            selectInput("iName", "Please select your name", choices = colnames(db[-1]) %>% sort, multiple = F, selected = ""),
+            selectInput("iName", "Please select your name", choices = colnames(db21[-1]) %>% sort, multiple = F, selected = ""),
             dateInput("iDate", "Please select date to validate", weekstart = 1),
             actionButton("iValidate", "Challenge Done!")
         )
