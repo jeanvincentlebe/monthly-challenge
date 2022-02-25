@@ -1,7 +1,7 @@
 # App update --------------
 library(rsconnect)
-rm("/Users/jivai/Documents/Sport/monthly-challenge/challenge/database.rdata")
-rsconnect::deployApp("/Users/jivai/Documents/Sport/monthly-challenge/challenge")
+rm("challenge/database.rdata")
+rsconnect::deployApp("challenge")
 
 # Initial Drop box connection ----
 library(rdrop2)
@@ -11,11 +11,10 @@ saveRDS(token, "droptoken.rds")
 # Database corrections -----------
 library(tidyverse)
 library(rdrop2)
-setwd("/Users/jivai/Documents/Sport")
 
 filePath <- "database21.rdata"
 filePathNew <- "database21.rdata"
-token <- readRDS("monthly-challenge/challenge/droptoken.rds")
+token <- readRDS("challenge/droptoken.rds")
 
 drop_download(filePath, overwrite = T, dtoken = token)
 load(file = filePath)
@@ -60,9 +59,34 @@ db21 <- tibble(Date = c("2021-01-01" %>% ymd, "2021-01-01" %>% ymd + seq(0:363))
              `Sarah Salvi` = 0,
              Virg = 0,
 )
-
 colnames(db21)[6] <- "Etienne \U0001f60a"
 save(db21, file = "challenge/database21.rdata")
+
+
+db22 <- tibble(Date = c("2022-01-01" %>% ymd, "2022-01-01" %>% ymd + seq(0:363)), 
+               `Anne-Sophie` = 0,
+               `André` = 0,
+               `Angelo` = 0,
+               `Christian` = 0,
+               `Darryn` = 0,
+               Fabrice = 0,
+               Felipe = 0,
+               `Fred` = 0,
+               `Gurhan` = 0,
+               Ingrid = 0,
+               `Jean-Vincent` = 0,
+               `Joao` = 0,
+               `Julien` = 0,
+               Louis = 0,
+               Pamela = 0,
+               Pauline = 0,
+               Peter = 0,
+               `Pierre-Nicolas` = 0,
+               Robert = 0,
+)
+
+save(db22, file = "challenge/database22.rdata")
+drop_upload("challenge/database22.rdata", dtoken = token)
 
 rm(db)
 load(file = "challenge/database.rdata")

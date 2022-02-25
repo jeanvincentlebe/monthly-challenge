@@ -14,16 +14,19 @@ library(rdrop2)
 # db21 and database21.rdata are 2021 database
 filePath <- "/database.rdata"
 filePath21 <- "/database21.rdata"
+filePath22 <- "/database22.rdata"
 
 token <- readRDS("droptoken.rds")
 drop_download(filePath21, overwrite = T, dtoken = token)
 drop_download(filePath, overwrite = T, dtoken = token)
+drop_download(filePath22, overwrite = T, dtoken = token)
 
 load(file = "database21.rdata")
+load(file = "database22.rdata")
 load(file = "database.rdata")
 
 ui <- dashboardPage(
-    dashboardHeader(title = "Monthly Challenge", titleWidth = "100%"),
+    dashboardHeader(title = "TSS healthy challenge", titleWidth = "100%"),
     dashboardSidebar(disable = T),
     dashboardBody(
         tabsetPanel(
@@ -35,7 +38,7 @@ ui <- dashboardPage(
             ),
             tabPanel(title = "Admin",
                      helpText(paste0("Server Time: ", now())),
-                     selectInput("ReAcName", HTML("Please select your name to reactivate (and validate today!)"), choices = colnames(db21[-1]) %>% sort, multiple = F, selected = ""),
+                     selectInput("ReAcName", HTML("Please select your name to reactivate (and validate today!)"), choices = colnames(db22[-1]) %>% sort, multiple = F, selected = ""),
                      actionButton("ReActivate", "Reactivate me!"),
                      tags$br(), tags$br(), tags$br(), tags$br(),
                      textInput("newName", "Enter new participant name (and validate today!)"),
@@ -56,9 +59,11 @@ server <- function(input, output) {
     output$ChallengeTab <- renderUI({
         from <- floor_date(today(), "month")
         to <- ceiling_date(today(), "month") - 1
-        db2 <- db21[db21$Date >= from & db21$Date <= to,] %>% 
-            pivot_longer(2:ncol(db21), names_to = "Name", values_to = "Done")
-        active <<- db2 %>% group_by(Name) %>% summarise(count = sum(Done)) %>% filter(count > 0) %>% pull(Name)
+        db2 <- db22[db22$Date >= from & db22$Date <= to,] %>% 
+            pivot_longer(2:ncol(db22), names_to = "Name", values_to = "Done")
+        active <<- db2 %>% group_by(Name) %>% 
+            # summarise(count = sum(Done)) %>% filter(count > 0) %>% 
+            pull(Name)
         
         fluidPage(
             helpText("If you don't find your name, use the 'Reactivate me!' button in the admin tab :)"),
@@ -73,12 +78,12 @@ server <- function(input, output) {
     })
     
     observeEvent(input$Validate, {
-        drop_download(filePath21, overwrite = T, dtoken = token)
-        load(file = "database21.rdata")
-        db21[which(db21$Date == today()), input$name] <- 1
-        save(db21, file = "database21.rdata")
-        drop_upload("database21.rdata", dtoken = token)
-        db21 <<- db21
+        drop_download(filePath22, overwrite = T, dtoken = token)
+        load(file = "database22.rdata")
+        db22[which(db22$Date == today()), input$name] <- 1
+        save(db22, file = "database22.rdata")
+        drop_upload("database22.rdata", dtoken = token)
+        db22 <<- db22
     })
     
     output$indivPlot <- renderPlot({
@@ -88,15 +93,15 @@ server <- function(input, output) {
         
         from <- floor_date(today(), "month")
         to <- ceiling_date(today(), "month") - 1
-        db2 <- db21[db21$Date >= from & db21$Date <= to,] %>% 
-            pivot_longer(2:ncol(db21), names_to = "Name", values_to = "Done")
+        db2 <- db22[db22$Date >= from & db22$Date <= to,] %>% 
+            pivot_longer(2:ncol(db22), names_to = "Name", values_to = "Done")
         db2$Name <- db2$Name %>% factor(levels = db2$Name %>% unique %>% sort %>% rev)
         db2$Done <- db2$Done %>% as.character
         db2$Done[db2$Done == "1"] <- "V"
         db2 <- db2[db2$Done == "V",]
         ggplot(db2) + geom_label(aes(x = Date, y = Name, label = Done, colour = Done)) +
             scale_x_date(limits = c(from, to)) +
-            scale_color_manual(values = c("green", "red"), guide = F) +
+            scale_color_manual(values = c("green", "red"), guide = "none") +
             geom_vline(xintercept = today(), colour = "blue") +
             labs(y = NULL)
     })
@@ -108,7 +113,7 @@ server <- function(input, output) {
         
         from <- floor_date(today(), "month")
         to <- ceiling_date(today(), "month") - 1
-        db2 <- db21[db21$Date >= from & db21$Date <= to,]
+        db2 <- db22[db22$Date >= from & db22$Date <= to,]
         db2$Total <- apply(db2[, -1], 1, sum)
         MaxLim <- ifelse(length(db2$Total) > 0, max(db2$Total), 0)
         db2$Total[db2$Total == 0] <- NA
@@ -128,43 +133,43 @@ server <- function(input, output) {
     })
     
     observeEvent(input$iValidate, {
-        drop_download(filePath21, overwrite = T, dtoken = token)
-        load(file = "database21.rdata")
-        db21[which(db21$Date == input$iDate), input$iName] <- 1
-        save(db21, file = "database21.rdata")
-        drop_upload("database21.rdata", dtoken = token)
-        db21 <<- db21
+        drop_download(filePath22, overwrite = T, dtoken = token)
+        load(file = "database22.rdata")
+        db22[which(db22$Date == input$iDate), input$iName] <- 1
+        save(db22, file = "database22.rdata")
+        drop_upload("database22.rdata", dtoken = token)
+        db22 <<- db22
     })
     
     # Admin Tab ------------------------------------------------------------------------------------
     observeEvent(input$newEnter, {
-        drop_download(filePath21, overwrite = T, dtoken = token)
-        load(file = "database21.rdata")
-        if(!input$newName %in% colnames(db21)){
-            db21 <- db21 %>% mutate(New = 0)
-            colnames(db21)[which(colnames(db21) == "New")] <- input$newName
-            db21[which(db21$Date == today()), input$newName] <- 1
+        drop_download(filePath22, overwrite = T, dtoken = token)
+        load(file = "database22.rdata")
+        if(!input$newName %in% colnames(db22)){
+            db22 <- db22 %>% mutate(New = 0)
+            colnames(db22)[which(colnames(db22) == "New")] <- input$newName
+            db22[which(db22$Date == today()), input$newName] <- 1
         }
-        save(db21, file = "database21.rdata")
+        save(db22, file = "database21.rdata")
         drop_upload("database21.rdata", dtoken = token)
-        db21 <<- db21
+        db22 <<- db22
     })
     
     observeEvent(input$ReActivate, {
-        drop_download(filePath21, overwrite = T, dtoken = token)
-        load(file = "database21.rdata")
-        db21[which(db21$Date == today()), input$ReAcName] <- 1
-        save(db21, file = "database21.rdata")
-        drop_upload("database21.rdata", dtoken = token)
-        db21 <<- db21
+        drop_download(filePath22, overwrite = T, dtoken = token)
+        load(file = "database22.rdata")
+        db22[which(db22$Date == today()), input$ReAcName] <- 1
+        save(db22, file = "database22.rdata")
+        drop_upload("database22.rdata", dtoken = token)
+        db22 <<- db22
     })
     
     output$downloadData <- downloadHandler(
         filename = "Challenge.csv",
         content = function(file) {
-            drop_download(filePath21, overwrite = T, dtoken = token)
-            load(file = "database21.rdata")
-            write.csv2(bind_rows(db, db21), file, row.names = FALSE)
+            drop_download(filePath22, overwrite = T, dtoken = token)
+            load(file = "database22.rdata")
+            write.csv2(bind_rows(db, db22), file, row.names = FALSE)
         }
     )
     
@@ -215,7 +220,7 @@ server <- function(input, output) {
         db2 <- db2[db2$Done == "V",]
         ggplot(db2) + geom_label(aes(x = Date, y = Name, label = Done, colour = Done)) +
             scale_x_date(limits = per) +
-            scale_color_manual(values = c("green", "red"), guide = F) +
+            scale_color_manual(values = c("green", "red"), guide = "none") +
             labs(y = NULL)
     })
     
