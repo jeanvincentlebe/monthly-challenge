@@ -5,8 +5,8 @@ account: jivai
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 3087307
-bundleId: 4161335
+bundleId: 4453767
 url: https://jivai.shinyapps.io/challenge/
-when: 1612033792.08435
+when: 1618044650.69182
 asMultiple: FALSE
 asStatic: FALSE

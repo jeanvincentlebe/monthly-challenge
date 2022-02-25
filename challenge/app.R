@@ -35,7 +35,10 @@ ui <- dashboardPage(
             ),
             tabPanel(title = "Admin",
                      helpText(paste0("Server Time: ", now())),
-                     textInput("newName", "Enter new participant name"),
+                     selectInput("ReAcName", HTML("Please select your name to reactivate (and validate today!)"), choices = colnames(db21[-1]) %>% sort, multiple = F, selected = ""),
+                     actionButton("ReActivate", "Reactivate me!"),
+                     tags$br(), tags$br(), tags$br(), tags$br(),
+                     textInput("newName", "Enter new participant name (and validate today!)"),
                      actionButton("newEnter", "Validate"),
                      downloadButton("downloadData", "Download csv table")
             ),
@@ -51,8 +54,15 @@ server <- function(input, output) {
     # Tab Challenge Entry
     ## ------ Active tab -------------------------------------------------------------------------------
     output$ChallengeTab <- renderUI({
+        from <- floor_date(today(), "month")
+        to <- ceiling_date(today(), "month") - 1
+        db2 <- db21[db21$Date >= from & db21$Date <= to,] %>% 
+            pivot_longer(2:ncol(db21), names_to = "Name", values_to = "Done")
+        active <<- db2 %>% group_by(Name) %>% summarise(count = sum(Done)) %>% filter(count > 0) %>% pull(Name)
+        
         fluidPage(
-            selectInput("name", "Please select your name", choices = colnames(db21[-1]) %>% sort, multiple = F, selected = ""),
+            helpText("If you don't find your name, use the 'Reactivate me!' button in the admin tab :)"),
+            selectInput("name", HTML("Please select your name <br/> (active people)"), choices = active %>% sort, multiple = F, selected = ""),
             actionButton("Validate", "Challenge Done!"),
             tags$br(), tags$br(), tags$br(),
             plotOutput("indivPlot"),
@@ -111,7 +121,7 @@ server <- function(input, output) {
     # Tab Other Days --------------------------------------------------------------------------------
     output$OtherDays <- renderUI({
         fluidPage(
-            selectInput("iName", "Please select your name", choices = colnames(db21[-1]) %>% sort, multiple = F, selected = ""),
+            selectInput("iName", HTML("Please select your name <br/> (active people)"), choices = active %>% sort, multiple = F, selected = ""),
             dateInput("iDate", "Please select date to validate", weekstart = 1),
             actionButton("iValidate", "Challenge Done!")
         )
@@ -133,7 +143,17 @@ server <- function(input, output) {
         if(!input$newName %in% colnames(db21)){
             db21 <- db21 %>% mutate(New = 0)
             colnames(db21)[which(colnames(db21) == "New")] <- input$newName
+            db21[which(db21$Date == today()), input$newName] <- 1
         }
+        save(db21, file = "database21.rdata")
+        drop_upload("database21.rdata", dtoken = token)
+        db21 <<- db21
+    })
+    
+    observeEvent(input$ReActivate, {
+        drop_download(filePath21, overwrite = T, dtoken = token)
+        load(file = "database21.rdata")
+        db21[which(db21$Date == today()), input$ReAcName] <- 1
         save(db21, file = "database21.rdata")
         drop_upload("database21.rdata", dtoken = token)
         db21 <<- db21
@@ -152,18 +172,38 @@ server <- function(input, output) {
     output$PastTab <- renderUI({
         fluidPage(
             selectInput("past_m", "Select past month to display", 
-                        choices = c("Nov 20", "Dec 20", "Jan 21"), 
-                        selected = "Nov 20"),
+                        choices = c("Nov 20", "Dec 20", "Jan 21", "Feb 21", "Mar 21", "Apr 21",
+                                    "May 21", "Jun 21", "Jul 21", "Aug 21", "Sep 21", "Oct 21",
+                                    "Nov 21", "Dec 21"), 
+                        selected = "Mar 21"),
             plotOutput("PastIndivPlot"),
             tags$br(),
             plotOutput("PastChallengePlot", height = "200px")
         )
     })
     
-    output$PastIndivPlot <- renderPlot({
+    per <- reactive({
         if(input$past_m == "Nov 20") per <- c("20201101" %>% ymd(), "20201130" %>% ymd())
+        if(input$past_m == "Nov 20") coul <- "#55509B"
         if(input$past_m == "Dec 20") per <- c("20201201" %>% ymd(), "20201231" %>% ymd())
+        if(input$past_m == "Dec 20") coul <- "#941E1E"
         if(input$past_m == "Jan 21") per <- c("20210101" %>% ymd(), "20210131" %>% ymd())
+        if(input$past_m == "Feb 21") per <- c("20210201" %>% ymd(), "20210228" %>% ymd())
+        if(input$past_m == "Mar 21") per <- c("20210301" %>% ymd(), "20210331" %>% ymd())
+        if(input$past_m == "Apr 21") per <- c("20210401" %>% ymd(), "20210430" %>% ymd())
+        if(input$past_m == "May 21") per <- c("20210501" %>% ymd(), "20210531" %>% ymd())
+        if(input$past_m == "Jun 21") per <- c("20210601" %>% ymd(), "20210630" %>% ymd())
+        if(input$past_m == "Jul 21") per <- c("20210701" %>% ymd(), "20210731" %>% ymd())
+        if(input$past_m == "Aug 21") per <- c("20210801" %>% ymd(), "20210831" %>% ymd())
+        if(input$past_m == "Sep 21") per <- c("20210901" %>% ymd(), "20210930" %>% ymd())
+        if(input$past_m == "Oct 21") per <- c("20211001" %>% ymd(), "20211031" %>% ymd())
+        if(input$past_m == "Nov 21") per <- c("20211101" %>% ymd(), "20211130" %>% ymd())
+        if(input$past_m == "Dec 21") per <- c("20211201" %>% ymd(), "20211231" %>% ymd())
+        per
+    })
+    
+    output$PastIndivPlot <- renderPlot({
+        per <- per()
         
         db2 <- db[db$Date >= per[1] & db$Date <= per[2],]
         if(!input$past_m %in% c("Nov 20", "Dec 20")) db2 <- db21[db21$Date >= per[1] & db21$Date <= per[2],]
@@ -181,11 +221,8 @@ server <- function(input, output) {
     
     output$PastChallengePlot <- renderPlot({
         coul <- "blue"
-        if(input$past_m == "Nov 20") per <- c("20201101" %>% ymd(), "20201130" %>% ymd())
-        if(input$past_m == "Nov 20") coul <- "#55509B"
-        if(input$past_m == "Dec 20") per <- c("20201201" %>% ymd(), "20201231" %>% ymd())
-        if(input$past_m == "Dec 20") coul <- "#941E1E"
-        if(input$past_m == "Jan 21") per <- c("20210101" %>% ymd(), "20210131" %>% ymd())
+        per <- per()
+        
         db2 <- db[db$Date >= per[1] & db$Date <= per[2],]
         if(!input$past_m %in% c("Nov 20", "Dec 20")) db2 <- db21[db21$Date >= per[1] & db21$Date <= per[2],]
         db2$Total <- apply(db2[, -1], 1, sum)
