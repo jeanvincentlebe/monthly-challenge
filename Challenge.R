@@ -12,8 +12,8 @@ saveRDS(token, "droptoken.rds")
 library(tidyverse)
 library(rdrop2)
 
-filePath <- "database21.rdata"
-filePathNew <- "database21.rdata"
+filePath <- "database22.rdata"
+filePathNew <- "database22.rdata"
 token <- readRDS("challenge/droptoken.rds")
 
 drop_download(filePath, overwrite = T, dtoken = token)
@@ -23,9 +23,9 @@ load(file = filePath)
 # db[db$Date >= ymd("2020-12-01"), -1] <- 0 # Set December to 0
 # db2$Total <- db2[,-1] %>% rowSums # make total
 # db21 <- db21[, c(1, 2, 3, 4, 5, 8, 9, 10, 16)]
-db21 <- db21 %>% select(-c(`NewNameTest`))
+db22$'André' <- 0
 # db21[db21$Date == "20210409" %>% ymd(), "Virg "] <- 0
-save(db21, file = filePathNew)
+save(db22, file = filePathNew)
 drop_upload(filePathNew, dtoken = token)
 
 # Remove NA names of the month - !! change Month dates !!
