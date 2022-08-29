@@ -63,14 +63,21 @@ colnames(db21)[6] <- "Etienne \U0001f60a"
 save(db21, file = "challenge/database21.rdata")
 
 
+# 2022
+
+filePath <- "database22.rdata"
+filePathNew <- "database22.rdata"
+token <- readRDS("droptoken.rds")
+
+drop_download(filePath, overwrite = T, dtoken = token)
+load(file = filePath)
+
 db22 <- tibble(Date = c("2022-01-01" %>% ymd, "2022-01-01" %>% ymd + seq(0:363)), 
                `Anne-Sophie` = 0,
                `André` = 0,
                `Angelo` = 0,
-               `Christian` = 0,
                `Darryn` = 0,
                Fabrice = 0,
-               Felipe = 0,
                `Fred` = 0,
                `Gurhan` = 0,
                Ingrid = 0,
@@ -85,8 +92,9 @@ db22 <- tibble(Date = c("2022-01-01" %>% ymd, "2022-01-01" %>% ymd + seq(0:363))
                Robert = 0,
 )
 
-save(db22, file = "challenge/database22.rdata")
-drop_upload("challenge/database22.rdata", dtoken = token)
+setwd("~/R Scripts/monthly-challenge/challenge")
+save(db22, file = "database22.rdata")
+drop_upload("database22.rdata", dtoken = token)
 
 rm(db)
 load(file = "challenge/database.rdata")
