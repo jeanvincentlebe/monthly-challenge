@@ -38,7 +38,8 @@ ui <- dashboardPage(
             ),
             tabPanel(title = "Admin",
                      helpText(paste0("Server Time: ", now())),
-                     selectInput("ReAcName", HTML("Please select your name to reactivate (and validate today!)"), choices = colnames(db22[-1]) %>% sort, multiple = F, selected = ""),
+                     selectInput("ReAcName", HTML("Please select your name to reactivate (and validate today!)"),
+                                 choices = colnames(db22[-1]) %>% sort, multiple = F, selected = NULL),
                      actionButton("ReActivate", "Reactivate me!"),
                      tags$br(), tags$br(), tags$br(), tags$br(),
                      textInput("newName", "Enter new participant name (and validate today!)"),
@@ -67,7 +68,8 @@ server <- function(input, output) {
         
         fluidPage(
             helpText("If you don't find your name, use the 'Reactivate me!' button in the admin tab :)"),
-            selectInput("name", HTML("Please select your name <br/> (active people)"), choices = active %>% sort, multiple = F, selected = ""),
+            selectInput("name", HTML("Please select your name <br/> (active people)"),
+                        choices = active %>% sort, multiple = F, selected = NULL),
             actionButton("Validate", "Challenge Done!"),
             tags$br(), tags$br(), tags$br(),
             plotOutput("indivPlot"),
@@ -126,9 +128,12 @@ server <- function(input, output) {
     # Tab Other Days --------------------------------------------------------------------------------
     output$OtherDays <- renderUI({
         fluidPage(
-            selectInput("iName", HTML("Please select your name <br/> (active people)"), choices = active %>% sort, multiple = F, selected = ""),
+            selectInput("iName", HTML("Please select your name <br/> (active people)"),
+                        choices = active %>% sort, multiple = F, selected = NULL),
             dateInput("iDate", "Please select date to validate", weekstart = 1),
-            actionButton("iValidate", "Challenge Done!")
+            actionButton("iValidate", "Challenge Done!"),
+            HTML("<br><br><br>"),
+            actionButton("iCancel", "Cancel that day for me :/")
         )
     })
     
@@ -140,6 +145,16 @@ server <- function(input, output) {
         drop_upload("database22.rdata", dtoken = token)
         db22 <<- db22
     })
+    
+    observeEvent(input$iCancel, {
+        drop_download(filePath22, overwrite = T, dtoken = token)
+        load(file = "database22.rdata")
+        db22[which(db22$Date == input$iDate), input$iName] <- 0
+        save(db22, file = "database22.rdata")
+        drop_upload("database22.rdata", dtoken = token)
+        db22 <<- db22
+    })
+    
     
     # Admin Tab ------------------------------------------------------------------------------------
     observeEvent(input$newEnter, {
