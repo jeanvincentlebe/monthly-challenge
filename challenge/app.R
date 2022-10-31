@@ -192,10 +192,10 @@ server <- function(input, output) {
     output$PastTab <- renderUI({
         fluidPage(
             selectInput("past_m", "Select past month to display", 
-                        choices = c("Nov 20", "Dec 20", "Jan 21", "Feb 21", "Mar 21", "Apr 21",
-                                    "May 21", "Jun 21", "Jul 21", "Aug 21", "Sep 21", "Oct 21",
-                                    "Nov 21", "Dec 21"), 
-                        selected = "Mar 21"),
+                        choices = c("Nov 20", "Dec 20", "Sep 22"), # "Jan 21", "Feb 21", "Mar 21", "Apr 21",
+                                    #"May 21", "Jun 21", "Jul 21", "Aug 21", "Sep 21", "Oct 21",
+                                    #"Nov 21", "Dec 21"), 
+                        selected = "Sep 22"),
             plotOutput("PastIndivPlot"),
             tags$br(),
             plotOutput("PastChallengePlot", height = "200px")
@@ -207,18 +207,18 @@ server <- function(input, output) {
         if(input$past_m == "Nov 20") coul <- "#55509B"
         if(input$past_m == "Dec 20") per <- c("20201201" %>% ymd(), "20201231" %>% ymd())
         if(input$past_m == "Dec 20") coul <- "#941E1E"
-        if(input$past_m == "Jan 21") per <- c("20210101" %>% ymd(), "20210131" %>% ymd())
-        if(input$past_m == "Feb 21") per <- c("20210201" %>% ymd(), "20210228" %>% ymd())
-        if(input$past_m == "Mar 21") per <- c("20210301" %>% ymd(), "20210331" %>% ymd())
-        if(input$past_m == "Apr 21") per <- c("20210401" %>% ymd(), "20210430" %>% ymd())
-        if(input$past_m == "May 21") per <- c("20210501" %>% ymd(), "20210531" %>% ymd())
-        if(input$past_m == "Jun 21") per <- c("20210601" %>% ymd(), "20210630" %>% ymd())
-        if(input$past_m == "Jul 21") per <- c("20210701" %>% ymd(), "20210731" %>% ymd())
-        if(input$past_m == "Aug 21") per <- c("20210801" %>% ymd(), "20210831" %>% ymd())
-        if(input$past_m == "Sep 21") per <- c("20210901" %>% ymd(), "20210930" %>% ymd())
-        if(input$past_m == "Oct 21") per <- c("20211001" %>% ymd(), "20211031" %>% ymd())
-        if(input$past_m == "Nov 21") per <- c("20211101" %>% ymd(), "20211130" %>% ymd())
-        if(input$past_m == "Dec 21") per <- c("20211201" %>% ymd(), "20211231" %>% ymd())
+        # if(input$past_m == "Jan 21") per <- c("20210101" %>% ymd(), "20210131" %>% ymd())
+        # if(input$past_m == "Feb 21") per <- c("20210201" %>% ymd(), "20210228" %>% ymd())
+        # if(input$past_m == "Mar 21") per <- c("20210301" %>% ymd(), "20210331" %>% ymd())
+        # if(input$past_m == "Apr 21") per <- c("20210401" %>% ymd(), "20210430" %>% ymd())
+        # if(input$past_m == "May 21") per <- c("20210501" %>% ymd(), "20210531" %>% ymd())
+        # if(input$past_m == "Jun 21") per <- c("20210601" %>% ymd(), "20210630" %>% ymd())
+        # if(input$past_m == "Jul 21") per <- c("20210701" %>% ymd(), "20210731" %>% ymd())
+        # if(input$past_m == "Aug 21") per <- c("20210801" %>% ymd(), "20210831" %>% ymd())
+        if(input$past_m == "Sep 22") per <- c("20220901" %>% ymd(), "20220930" %>% ymd())
+        # if(input$past_m == "Oct 21") per <- c("20211001" %>% ymd(), "20211031" %>% ymd())
+        # if(input$past_m == "Nov 21") per <- c("20211101" %>% ymd(), "20211130" %>% ymd())
+        # if(input$past_m == "Dec 21") per <- c("20211201" %>% ymd(), "20211231" %>% ymd())
         per
     })
     
@@ -226,7 +226,7 @@ server <- function(input, output) {
         per <- per()
         
         db2 <- db[db$Date >= per[1] & db$Date <= per[2],]
-        if(!input$past_m %in% c("Nov 20", "Dec 20")) db2 <- db21[db21$Date >= per[1] & db21$Date <= per[2],]
+        if(!input$past_m %in% c("Nov 20", "Dec 20")) db2 <- db22[db22$Date >= per[1] & db22$Date <= per[2],]
         
         db2 <- db2 %>% pivot_longer(2:ncol(db2), names_to = "Name", values_to = "Done")
         db2$Name <- db2$Name %>% factor(levels = db2$Name %>% unique %>% sort %>% rev)
@@ -244,7 +244,7 @@ server <- function(input, output) {
         per <- per()
         
         db2 <- db[db$Date >= per[1] & db$Date <= per[2],]
-        if(!input$past_m %in% c("Nov 20", "Dec 20")) db2 <- db21[db21$Date >= per[1] & db21$Date <= per[2],]
+        if(!input$past_m %in% c("Nov 20", "Dec 20")) db2 <- db22[db22$Date >= per[1] & db22$Date <= per[2],]
         db2$Total <- apply(db2[, -1], 1, sum)
         MaxLim <- max(db2$Total)
         db2$Total[db2$Total == 0] <- NA
